@@ -1,8 +1,6 @@
 ### Build
 
-FROM node:16-alpine As build
-
-RUN mkdir -p /usr/src/app
+FROM node:14-alpine As build
 
 WORKDIR /usr/src/app
 
@@ -13,33 +11,22 @@ RUN npm ci
 COPY tsconfig*.json nest-cli.json ./
 COPY ./src ./src
 
-RUN npm run build
+RUN npm run build && npm prune --production
 
 ### Production
 
-FROM node:16-alpine
+FROM gcr.io/distroless/nodejs:14
 
-ARG USERGROUP="nodegroup"
-ARG USER="nodeuser"
 ARG WORKDIR="/usr/src/app"
 
 WORKDIR ${WORKDIR}
 
-RUN addgroup -S ${USERGROUP}
-RUN adduser -S -D -h ${WORKDIR} ${USER} ${USERGROUP}
-
-RUN chown -R $USER:$USERGROUP ${WORKDIR}
-
 ENV NODE_ENV production
 
 COPY package*.json ./
-
-RUN npm ci --only=production
-
-COPY --from=build /usr/src/app/dist ./dist
-
-USER ${USER}
+COPY --from=build ${WORKDIR}/node_modules/ ./node_modules
+COPY --from=build ${WORKDIR}/dist ./dist
 
 EXPOSE 4000
 
-CMD [ "node", "dist/main.js" ]
+CMD [ "dist/main.js" ]
