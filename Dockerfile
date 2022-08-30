@@ -1,6 +1,6 @@
 ### Build
 
-FROM node:14-alpine As build
+FROM node:12-alpine AS base
 
 WORKDIR /usr/src/app
 
@@ -15,7 +15,7 @@ RUN npm run build && npm prune --production
 
 ### Production
 
-FROM gcr.io/distroless/nodejs:14
+FROM gcr.io/distroless/nodejs:12
 
 ARG WORKDIR="/usr/src/app"
 
@@ -24,8 +24,8 @@ WORKDIR ${WORKDIR}
 ENV NODE_ENV production
 
 COPY package*.json ./
-COPY --from=build ${WORKDIR}/node_modules/ ./node_modules
-COPY --from=build ${WORKDIR}/dist ./dist
+COPY --from=base ${WORKDIR}/node_modules/ ./node_modules
+COPY --from=base ${WORKDIR}/dist ./dist
 
 EXPOSE 4000
 
